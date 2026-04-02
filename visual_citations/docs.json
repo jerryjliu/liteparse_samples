@@ -1,0 +1,50 @@
+[
+  {
+    "name": "FDIC Quarterly Banking Profile — Selected Indicators",
+    "file": "fdic_qbp.pdf",
+    "pages": [5, 6],
+    "source": "fdic.gov"
+  },
+  {
+    "name": "FDIC — Loan Performance Table",
+    "file": "fdic_qbp.pdf",
+    "pages": [11, 12],
+    "source": "fdic.gov"
+  },
+  {
+    "name": "Federal Reserve H.4.1 — Reserve Balances",
+    "file": "fed_h41.pdf",
+    "pages": [0, 1],
+    "source": "federalreserve.gov"
+  },
+  {
+    "name": "Federal Reserve H.4.1 — Condition Statement",
+    "file": "fed_h41.pdf",
+    "pages": [5, 6],
+    "source": "federalreserve.gov"
+  },
+  {
+    "name": "CMS Medicare Physician Fee Schedule (CY 2026)",
+    "file": "cms_pfs.pdf",
+    "pages": [0, 1, 2],
+    "source": "cms.gov"
+  },
+  {
+    "name": "IRS Form 1040 — U.S. Individual Income Tax Return",
+    "file": "irs_1040.pdf",
+    "pages": [0, 1],
+    "source": "irs.gov"
+  },
+  {
+    "name": "WHO Indicators — Summary Classification Table",
+    "file": "who_indicators.pdf",
+    "pages": [15, 16],
+    "source": "who.int"
+  },
+  {
+    "name": "WHO — Additional Indicators Definition Table",
+    "file": "who_indicators.pdf",
+    "pages": [144, 145],
+    "source": "who.int"
+  }
+]

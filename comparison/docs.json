@@ -1,0 +1,58 @@
+[
+  {
+    "name": "FDIC Quarterly Banking Profile — Selected Indicators",
+    "file": "fdic_qbp.pdf",
+    "pages": [5, 6],
+    "desc": "Dense financial tables — bank performance aggregates, multi-level headers, dollar amounts, and percentages across quarterly and annual periods.",
+    "source": "fdic.gov"
+  },
+  {
+    "name": "FDIC — Loan Performance Table",
+    "file": "fdic_qbp.pdf",
+    "pages": [11, 12],
+    "desc": "Loan performance data — deeply nested row labels for loan categories, many numeric columns with dollar amounts and ratios.",
+    "source": "fdic.gov"
+  },
+  {
+    "name": "Federal Reserve H.4.1 — Reserve Balances",
+    "file": "fed_h41.pdf",
+    "pages": [0, 1],
+    "desc": "Weekly Fed balance sheet — hierarchical indented row labels, precise dollar figures in tightly aligned columns.",
+    "source": "federalreserve.gov"
+  },
+  {
+    "name": "Federal Reserve H.4.1 — Condition Statement",
+    "file": "fed_h41.pdf",
+    "pages": [5, 6],
+    "desc": "Consolidated balance sheet of all Federal Reserve Banks — assets and liabilities in tabular layout.",
+    "source": "federalreserve.gov"
+  },
+  {
+    "name": "CMS Medicare Physician Fee Schedule (CY 2026)",
+    "file": "cms_pfs.pdf",
+    "pages": [0, 1, 2],
+    "desc": "Payment policy changes with tables embedded in narrative — conversion factors, payment rates, RVU adjustments.",
+    "source": "cms.gov"
+  },
+  {
+    "name": "IRS Form 1040 — U.S. Individual Income Tax Return",
+    "file": "irs_1040.pdf",
+    "pages": [0, 1],
+    "desc": "The most-used U.S. tax form — structured form layout with labeled rows, numeric entry fields, checkboxes.",
+    "source": "irs.gov"
+  },
+  {
+    "name": "WHO Indicators — Summary Classification Table",
+    "file": "who_indicators.pdf",
+    "pages": [15, 16],
+    "desc": "100 core health indicators mapped to domains — dense classification grid with check marks across categories.",
+    "source": "who.int"
+  },
+  {
+    "name": "WHO — Additional Indicators Definition Table",
+    "file": "who_indicators.pdf",
+    "pages": [144, 145],
+    "desc": "Multi-column reference tables — indicator name, definition, disaggregation, and data sources in text-heavy cells.",
+    "source": "who.int"
+  }
+]

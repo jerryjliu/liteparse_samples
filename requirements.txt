@@ -1,0 +1,3 @@
+liteparse
+pypdf
+pymupdf
