@@ -315,14 +315,14 @@ html_content = f"""<!DOCTYPE html>
 
 <div class="hero">
   <h1><span class="accent">LiteParse</span> Visual Citations</h1>
-  <p class="subtitle">Search any phrase and see exactly where it appears on the source PDF page, highlighted with bounding boxes from LiteParse.</p>
+  <p class="subtitle">Exact keyword search over parsed text &mdash; see precisely where each match appears on the source PDF page, highlighted with bounding boxes from LiteParse.</p>
 </div>
 
 <div class="controls">
   <label for="doc-select">Document</label>
   <select id="doc-select"></select>
   <label for="search-input">Search</label>
-  <input type="text" id="search-input" placeholder="Type a phrase to highlight on the page..." />
+  <input type="text" id="search-input" placeholder="Exact keyword search (e.g. &quot;Total&quot;, &quot;assets&quot;)..." />
   <button class="search-btn" id="search-btn">Search</button>
   <span class="match-count" id="match-count"></span>
 </div>

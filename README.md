@@ -19,7 +19,7 @@ Side-by-side comparison of **LiteParse vs PyPDF vs PyMuPDF** on real government 
 
 ### Visual Citations
 
-Search any phrase and see exactly where it appears on the source PDF page, with **bounding boxes** highlighted directly on the page image. Learn more in the [Visual Citations guide](https://developers.llamaindex.ai/liteparse/guides/visual-citations/).
+Exact keyword search over parsed documents — see precisely where each match appears on the source PDF page, with **bounding boxes** highlighted directly on the page image. This is a simple substring match demo (not fuzzy or RAG-based search). Learn more in the [Visual Citations guide](https://developers.llamaindex.ai/liteparse/guides/visual-citations/).
 
 ![Visual Citations](assets/visual-citations.png)
 
