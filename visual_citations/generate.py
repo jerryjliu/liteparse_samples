@@ -204,7 +204,7 @@ html_content = f"""<!DOCTYPE html>
   .main {{
     display: grid; grid-template-columns: minmax(600px, 1fr) minmax(0, 1fr);
     max-width: 1500px; margin: 0 auto;
-    min-height: calc(100vh - 180px);
+    height: calc(100vh - 180px);
   }}
 
   /* Left: page viewer */
@@ -257,7 +257,7 @@ html_content = f"""<!DOCTYPE html>
   /* Right: text viewer */
   .text-panel {{
     display: flex; flex-direction: column;
-    min-width: 0; overflow: hidden;
+    min-width: 0; min-height: 0; overflow: hidden;
   }}
   .text-header {{
     padding: 0.5rem 1rem;
@@ -289,6 +289,72 @@ html_content = f"""<!DOCTYPE html>
   }}
 
   .hidden-img {{ display: none !important; }}
+
+  /* Panel tabs */
+  .panel-tabs {{
+    display: flex; gap: 0;
+  }}
+  .panel-tab {{
+    padding: 0.35rem 0.8rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem; font-weight: 500;
+    color: var(--text-dim);
+    background: transparent; border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer; transition: all 0.15s;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }}
+  .panel-tab:hover {{ color: var(--text); }}
+  .panel-tab.active {{
+    color: var(--purple);
+    border-bottom-color: var(--purple);
+  }}
+
+  /* Regions list */
+  .regions-content {{
+    flex: 1; overflow: auto;
+    min-height: 0;
+    padding: 0.75rem;
+    background: var(--bg-alt);
+  }}
+  .regions-summary {{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem; color: var(--text-dim);
+    padding: 0.25rem 0.25rem 0.5rem;
+    text-transform: uppercase; letter-spacing: 0.02em;
+  }}
+  .region-item {{
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    transition: all 0.12s;
+  }}
+  .region-item:hover {{
+    border-color: var(--purple-light);
+    background: rgba(62,24,249,0.03);
+    box-shadow: 0 0 0 1px var(--purple-light);
+  }}
+  .region-item.highlighted {{
+    border-color: var(--purple);
+    background: rgba(62,24,249,0.06);
+    box-shadow: 0 0 0 1px var(--purple);
+  }}
+  .region-text {{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem; line-height: 1.4;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }}
+  .region-bbox {{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem; color: var(--text-dim);
+    margin-top: 0.25rem;
+    letter-spacing: 0.01em;
+  }}
 
   /* Footer */
   .footer {{
@@ -342,10 +408,14 @@ html_content = f"""<!DOCTYPE html>
   </div>
   <div class="text-panel">
     <div class="text-header">
-      <span>Parsed Text (LiteParse)</span>
+      <div class="panel-tabs">
+        <button class="panel-tab active" data-panel="text">Parsed Text</button>
+        <button class="panel-tab" data-panel="regions">Text Regions</button>
+      </div>
       <span class="parse-time" id="parse-time"></span>
     </div>
     <div class="text-content" id="text-content"></div>
+    <div class="regions-content" id="regions-content" style="display:none"></div>
   </div>
 </div>
 
@@ -374,7 +444,11 @@ const pageImg = document.getElementById("page-img");
 const canvas = document.getElementById("highlight-canvas");
 const ctx = canvas.getContext("2d");
 const textContent = document.getElementById("text-content");
+const regionsContent = document.getElementById("regions-content");
 const parseTime = document.getElementById("parse-time");
+const panelTabs = document.querySelectorAll(".panel-tab");
+let currentPanel = "text";
+let hoverItem = null;
 
 // Populate doc selector
 DOCS.forEach((doc, i) => {{
@@ -424,8 +498,9 @@ function loadPage(pageIdx) {{
     }};
   }}
 
-  // Render text with highlights
+  // Render text with highlights and regions list
   renderText();
+  renderRegions();
 }}
 
 function searchTextItems(textItems, query) {{
@@ -481,35 +556,48 @@ function drawHighlights() {{
   const page = doc.pages[currentPage];
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (!currentQuery) return;
-
-  const matches = searchTextItems(page.textItems, currentQuery);
-
   // Scale: image pixel dimensions vs PDF points
   const imgW = pageImg.naturalWidth;
   const imgH = pageImg.naturalHeight;
+  if (!imgW || !imgH) return;
   const scaleX = imgW / (page.width * SCALE);
   const scaleY = imgH / (page.height * SCALE);
 
-  ctx.fillStyle = "rgba(254, 238, 5, 0.35)";
-  ctx.strokeStyle = "rgba(254, 238, 5, 0.8)";
-  ctx.lineWidth = 2;
+  // Draw search highlights (yellow)
+  if (currentQuery) {{
+    const matches = searchTextItems(page.textItems, currentQuery);
+    ctx.fillStyle = "rgba(254, 238, 5, 0.35)";
+    ctx.strokeStyle = "rgba(254, 238, 5, 0.8)";
+    ctx.lineWidth = 2;
+    for (const m of matches) {{
+      const x = m.x * SCALE * scaleX;
+      const y = m.y * SCALE * scaleY;
+      const w = m.width * SCALE * scaleX;
+      const h = m.height * SCALE * scaleY;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
+    }}
 
-  for (const m of matches) {{
-    const x = m.x * SCALE * scaleX;
-    const y = m.y * SCALE * scaleY;
-    const w = m.width * SCALE * scaleX;
-    const h = m.height * SCALE * scaleY;
+    // Update match count across all pages
+    let totalMatches = 0;
+    for (const p of doc.pages) {{
+      totalMatches += searchTextItems(p.textItems, currentQuery).length;
+    }}
+    matchCount.textContent = totalMatches + " match" + (totalMatches !== 1 ? "es" : "");
+  }}
+
+  // Draw hover highlight (purple)
+  if (hoverItem) {{
+    const x = hoverItem.x * SCALE * scaleX;
+    const y = hoverItem.y * SCALE * scaleY;
+    const w = hoverItem.width * SCALE * scaleX;
+    const h = hoverItem.height * SCALE * scaleY;
+    ctx.fillStyle = "rgba(62, 24, 249, 0.18)";
+    ctx.strokeStyle = "rgba(62, 24, 249, 0.8)";
+    ctx.lineWidth = 2;
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
   }}
-
-  // Update match count across all pages
-  let totalMatches = 0;
-  for (const p of doc.pages) {{
-    totalMatches += searchTextItems(p.textItems, currentQuery).length;
-  }}
-  matchCount.textContent = totalMatches + " match" + (totalMatches !== 1 ? "es" : "");
 }}
 
 function renderText() {{
@@ -537,6 +625,77 @@ function escapeHtml(s) {{
 
 function escapeRegex(s) {{
   return s.replace(/[.*+?^${{}}()|[\\]\\\\]/g, "\\\\$&");
+}}
+
+// Panel tab switching
+panelTabs.forEach(tab => {{
+  tab.addEventListener("click", () => {{
+    panelTabs.forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentPanel = tab.dataset.panel;
+    if (currentPanel === "text") {{
+      textContent.style.display = "";
+      regionsContent.style.display = "none";
+    }} else {{
+      textContent.style.display = "none";
+      regionsContent.style.display = "";
+    }}
+  }});
+}});
+
+function renderRegions() {{
+  const doc = DOCS[currentDoc];
+  const page = doc.pages[currentPage];
+  const items = page.textItems;
+  regionsContent.innerHTML = "";
+
+  const summary = document.createElement("div");
+  summary.className = "regions-summary";
+  summary.textContent = items.length + " text regions on this page";
+  regionsContent.appendChild(summary);
+
+  items.forEach((item, idx) => {{
+    const el = document.createElement("div");
+    el.className = "region-item";
+    el.dataset.idx = idx;
+
+    const textEl = document.createElement("div");
+    textEl.className = "region-text";
+    textEl.textContent = item.text;
+
+    const bboxEl = document.createElement("div");
+    bboxEl.className = "region-bbox";
+    bboxEl.textContent = "x: " + item.x.toFixed(1) + "  y: " + item.y.toFixed(1) +
+      "  w: " + item.width.toFixed(1) + "  h: " + item.height.toFixed(1);
+
+    el.appendChild(textEl);
+    el.appendChild(bboxEl);
+    regionsContent.appendChild(el);
+
+    el.addEventListener("mouseenter", () => {{
+      hoverItem = item;
+      el.classList.add("highlighted");
+      drawHighlights();
+    }});
+    el.addEventListener("mouseleave", () => {{
+      hoverItem = null;
+      el.classList.remove("highlighted");
+      drawHighlights();
+    }});
+    el.addEventListener("click", () => {{
+      // Scroll the page viewer to make the highlighted region visible
+      const imgW = pageImg.naturalWidth;
+      const imgH = pageImg.naturalHeight;
+      const scaleX = imgW / (page.width * SCALE);
+      const scaleY = imgH / (page.height * SCALE);
+      const dispW = pageImg.clientWidth;
+      const dispH = pageImg.clientHeight;
+      const renderScale = dispW / imgW;
+      const yPx = item.y * SCALE * scaleY * renderScale;
+      const wrap = document.querySelector(".canvas-wrap");
+      wrap.scrollTo({{ top: Math.max(0, yPx - 100), behavior: "smooth" }});
+    }});
+  }});
 }}
 
 function doSearch() {{
