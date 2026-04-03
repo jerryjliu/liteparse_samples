@@ -1,0 +1,11 @@
+{
+  "name": "liteparse-samples",
+  "description": "Interactive demos and skills for LiteParse document parsing",
+  "skills": {
+    "ask_docs": {
+      "name": "ask-docs",
+      "description": "Parse documents and answer questions with visual citations",
+      "path": "ask_docs"
+    }
+  }
+}

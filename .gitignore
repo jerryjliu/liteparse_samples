@@ -4,3 +4,5 @@ __pycache__/
 *.egg-info/
 research/
 plans/
+*.traineddata
+ask_docs_output/

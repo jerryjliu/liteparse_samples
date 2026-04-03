@@ -30,6 +30,26 @@ Exact keyword search over parsed documents — see precisely where each match ap
 - Bounding box overlays on rendered page images
 - Side-by-side view of source page and parsed text with highlighted matches
 
+### Ask Docs (Claude Code Skill)
+
+Ask questions about your documents — get answers with **visual source citations**. Install as a [Claude Code](https://claude.com/claude-code) skill and invoke with `/ask-docs`. The skill parses your documents, has Claude answer your question, and generates an HTML report with the answer and cited source pages highlighted with bounding boxes.
+
+![Ask Docs](ask_docs/assets/ask-docs.png)
+
+**Install:**
+```bash
+npx skills add run-llama/liteparse_samples --skill ask_docs
+```
+
+**Usage:** `/ask-docs ./my-pdfs What is the total revenue?`
+
+**Features:**
+- Parse any document LiteParse supports (PDF, DOCX, PPTX, XLSX, images) plus plaintext
+- AI-powered answers with exact-quote source citations
+- Bounding box highlights on source page images
+- PDF viewer toggle for each citation
+- Self-contained HTML report
+
 ## Regenerating with Your Own Data
 
 1. Add your PDFs to the `data/` folder
@@ -44,6 +64,10 @@ cd comparison && python generate.py
 
 # Regenerate visual citations
 cd visual_citations && python generate.py
+
+# Install ask_docs skill
+cp -r ask_docs ~/.claude/skills/ask_docs
+# Then use: /ask-docs ./data "Your question here"
 ```
 
 ### docs.json format
