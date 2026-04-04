@@ -244,10 +244,16 @@ def markdown_to_html(text):
 
 
 def _inline_markdown(text):
-    """Convert inline markdown: bold, italic, code."""
+    """Convert inline markdown: bold, italic, code, citation refs."""
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", text)
     text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
+    # Citation markers: [1], [2], etc. → clickable links
+    text = re.sub(
+        r"\[(\d+)\]",
+        r'<a class="cite-ref" href="#citation-\1" data-cite="\1">[\1]</a>',
+        text,
+    )
     return text
 
 

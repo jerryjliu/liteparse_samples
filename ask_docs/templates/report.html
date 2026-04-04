@@ -112,6 +112,27 @@
   }
   .answer-content strong { font-weight: 600; }
 
+  /* Inline citation references */
+  .cite-ref {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7em; font-weight: 600;
+    color: var(--purple);
+    text-decoration: none;
+    background: rgba(62, 24, 249, 0.08);
+    border-radius: 3px;
+    padding: 0 0.2em;
+    margin: 0 0.05em;
+    vertical-align: super;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .cite-ref:hover { background: var(--purple); color: #fff; }
+  .citation-card.flash {
+    box-shadow: 0 0 0 2px var(--purple), 0 4px 16px rgba(62,24,249,0.15);
+    transition: box-shadow 0.3s;
+  }
+
   /* Citations section */
   .citations-section { }
   .citations-label {
@@ -270,6 +291,54 @@
     padding: 0 2px;
   }
 
+  /* Right panel tabs (Cited Quote / Full Page Text) */
+  .cite-panel-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .cite-panel-tab {
+    padding: 0.3rem 0.7rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem; font-weight: 500;
+    color: var(--text-dim);
+    background: transparent; border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer; transition: all 0.15s;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .cite-panel-tab:hover { color: var(--text); }
+  .cite-panel-tab.active {
+    color: var(--purple);
+    border-bottom-color: var(--purple);
+  }
+
+  /* Cited quote display */
+  .cite-quote-panel {
+    padding: 0.75rem;
+    background: var(--bg);
+    overflow-y: auto;
+    flex: 1;
+  }
+  .cite-quote-block {
+    border-left: 3px solid var(--purple);
+    padding: 0.6rem 0.8rem;
+    background: rgba(62, 24, 249, 0.04);
+    border-radius: 0 6px 6px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem; line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .cite-relevance-text {
+    margin-top: 0.6rem;
+    font-size: 0.78rem; line-height: 1.5;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
   /* View tabs (Page Image / PDF Viewer) */
   .cite-view-tabs {
     display: flex; gap: 0;
@@ -373,16 +442,34 @@ const CITATIONS = {{CITATIONS_JSON}};
 const DPI = {{DPI}};
 const SCALE = DPI / 72;
 
+// ── Text normalization (smart quotes, hyphens, ligatures) ───────────
+
+function normalizeText(s) {
+  // Smart/curly quotes → straight
+  s = s.replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"');
+  s = s.replace(/[\u2018\u2019\u201A\u201B\u2032\u2035`\u0060]/g, "'");
+  // Em/en dashes → hyphen
+  s = s.replace(/[\u2013\u2014]/g, '-');
+  // Rejoin hyphenated line breaks: "expres - sion" → "expression"
+  s = s.replace(/(\w)\s*-\s+(\w)/g, '$1$2');
+  // Common ligature characters
+  s = s.replace(/\uFB01/g, 'fi').replace(/\uFB02/g, 'fl')
+    .replace(/\uFB00/g, 'ff').replace(/\uFB03/g, 'ffi').replace(/\uFB04/g, 'ffl');
+  return s;
+}
+
 // ── Bounding box search (ported from visual_citations) ──────────────
 
 function searchTextItems(textItems, query) {
   if (!query || !textItems || !textItems.length) return [];
-  const q = query.toLowerCase();
+  const q = normalizeText(query.toLowerCase());
 
+  // Normalize each item's text BEFORE building the concatenated string,
+  // so character positions in the concatenated text match the ranges.
   let fullText = "";
   const ranges = [];
   for (const item of textItems) {
-    const trimmed = item.text.replace(/\s+$/, "");
+    const trimmed = normalizeText(item.text.replace(/\s+$/, ""));
     if (!trimmed) continue;
     if (fullText.length > 0) fullText += " ";
     const start = fullText.length;
@@ -436,79 +523,124 @@ function highlightQuote(text, quote) {
   return escaped.replace(regex, "<mark>$1</mark>");
 }
 
+// ── Group citations by (file, page) ─────────────────────────────────
+
+function groupCitations(citations) {
+  const groups = [];
+  const seen = {};
+  citations.forEach((cit, idx) => {
+    const key = cit.file + "|" + cit.page;
+    if (!(key in seen)) {
+      seen[key] = groups.length;
+      groups.push({ ...cit, quotes: [], origIndices: [] });
+    }
+    const g = groups[seen[key]];
+    g.quotes.push({ quote: cit.quote, relevance: cit.relevance || "", origIdx: idx });
+    g.origIndices.push(idx);
+  });
+  return groups;
+}
+
 // ── Build citation cards ────────────────────────────────────────────
 
 const container = document.getElementById("citations-container");
+const groups = groupCitations(CITATIONS);
 
-CITATIONS.forEach((cit, idx) => {
+groups.forEach((group, gIdx) => {
   const card = document.createElement("div");
   card.className = "citation-card";
-  card.id = "citation-" + idx;
+  // Each original citation index maps to this card (for inline [N] links)
+  group.origIndices.forEach(oi => {
+    // Create anchor targets for each original citation number
+    const anchor = document.createElement("span");
+    anchor.id = "citation-" + (oi + 1);
+    card.appendChild(anchor);
+  });
 
-  // Header
-  const pageTag = cit.page > 0
-    ? '<span class="page-tag">Page ' + cit.page + '</span>'
+  // Header — show citation numbers
+  const nums = group.origIndices.map(i => i + 1);
+  const numsHtml = nums.map(n => `<span class="citation-num">${n}</span>`).join("");
+  const pageTag = group.page > 0
+    ? '<span class="page-tag">Page ' + group.page + '</span>'
     : '';
 
-  card.innerHTML = `
-    <div class="citation-header" onclick="this.parentElement.classList.toggle('collapsed')">
-      <div class="citation-num">${idx + 1}</div>
-      <div class="citation-meta">
-        <div class="citation-file">${escapeHtml(cit.file)}${pageTag}</div>
-        <div class="citation-relevance">${escapeHtml(cit.relevance || "")}</div>
-      </div>
-      <div class="citation-toggle">&#9660;</div>
+  const header = document.createElement("div");
+  header.className = "citation-header";
+  header.onclick = function() { card.classList.toggle("collapsed"); };
+  header.innerHTML = `
+    <div style="display:flex;gap:0.25rem">${numsHtml}</div>
+    <div class="citation-meta">
+      <div class="citation-file">${escapeHtml(group.file)}${pageTag}</div>
+      <div class="citation-relevance">${group.quotes.length} cited quote${group.quotes.length > 1 ? "s" : ""}</div>
     </div>
+    <div class="citation-toggle">&#9660;</div>
   `;
+  card.appendChild(header);
 
   // Body
   const body = document.createElement("div");
   body.className = "citation-body";
+  const uid = "g" + gIdx;
 
-  if (cit.type === "liteparse" && cit.imgId) {
-    // Two-column: page image + parsed text
-    const hasPdf = cit.pdfPath ? true : false;
+  if (group.type === "liteparse" && group.imgId) {
+    const hasPdf = group.pdfPath ? true : false;
     const pdfTabHtml = hasPdf
-      ? `<button class="cite-view-tab" data-view="pdf" data-idx="${idx}">PDF Viewer</button>`
+      ? `<button class="cite-view-tab" data-view="pdf" data-uid="${uid}">PDF Viewer</button>`
       : '';
     body.innerHTML = `
       <div class="cite-viewer">
         <div class="cite-view-tabs">
-          <button class="cite-view-tab active" data-view="image" data-idx="${idx}">Page Image</button>
+          <button class="cite-view-tab active" data-view="image" data-uid="${uid}">Page Image</button>
           ${pdfTabHtml}
         </div>
-        <div class="cite-canvas-wrap" id="cite-image-view-${idx}">
+        <div class="cite-canvas-wrap" id="cite-image-view-${uid}">
           <div class="cite-canvas-container">
-            <img id="cite-display-${idx}" src="" alt="Page ${cit.page}" />
-            <canvas id="cite-canvas-${idx}"></canvas>
+            <img id="cite-display-${uid}" src="" alt="Page ${group.page}" />
+            <canvas id="cite-canvas-${uid}"></canvas>
           </div>
         </div>
-        <div class="cite-pdf-viewer" id="cite-pdf-view-${idx}"></div>
+        <div class="cite-pdf-viewer" id="cite-pdf-view-${uid}"></div>
       </div>
       <div class="cite-text-panel">
-        <div class="cite-text-label">Parsed Text</div>
-        <div class="cite-text-content" id="cite-text-${idx}"></div>
+        <div class="cite-panel-tabs">
+          <button class="cite-panel-tab active" data-panel="quote" data-uid="${uid}">Cited Quotes</button>
+          <button class="cite-panel-tab" data-panel="fulltext" data-uid="${uid}">Full Page Text</button>
+        </div>
+        <div class="cite-quote-panel" id="cite-quote-${uid}"></div>
+        <div class="cite-text-content" id="cite-text-${uid}" style="display:none"></div>
       </div>
     `;
 
-    // Wire up view tab switching
+    // Right panel tab switching
+    body.querySelectorAll(".cite-panel-tab").forEach(ptab => {
+      ptab.addEventListener("click", () => {
+        body.querySelectorAll(".cite-panel-tab").forEach(t => t.classList.remove("active"));
+        ptab.classList.add("active");
+        const quotePanel = document.getElementById("cite-quote-" + ptab.dataset.uid);
+        const textPanel = document.getElementById("cite-text-" + ptab.dataset.uid);
+        if (ptab.dataset.panel === "quote") {
+          quotePanel.style.display = "";
+          textPanel.style.display = "none";
+        } else {
+          quotePanel.style.display = "none";
+          textPanel.style.display = "";
+        }
+      });
+    });
+
+    // Left panel view tab switching
     body.querySelectorAll(".cite-view-tab").forEach(tab => {
       tab.addEventListener("click", () => {
-        const i = tab.dataset.idx;
-        const view = tab.dataset.view;
-        // Toggle active tab
         body.querySelectorAll(".cite-view-tab").forEach(t => t.classList.remove("active"));
         tab.classList.add("active");
-        // Toggle views
-        const imageView = document.getElementById("cite-image-view-" + i);
-        const pdfView = document.getElementById("cite-pdf-view-" + i);
-        if (view === "pdf") {
+        const imageView = document.getElementById("cite-image-view-" + tab.dataset.uid);
+        const pdfView = document.getElementById("cite-pdf-view-" + tab.dataset.uid);
+        if (tab.dataset.view === "pdf") {
           imageView.style.display = "none";
           pdfView.classList.add("active");
-          // Lazy-load PDF iframe
           if (!pdfView.querySelector("iframe")) {
             const iframe = document.createElement("iframe");
-            iframe.src = cit.pdfPath + "#page=" + cit.page;
+            iframe.src = group.pdfPath + "#page=" + group.page;
             pdfView.appendChild(iframe);
           }
         } else {
@@ -517,84 +649,145 @@ CITATIONS.forEach((cit, idx) => {
         }
       });
     });
-  } else if (cit.type === "plaintext" || cit.type === "text-only") {
-    // Single column: text snippet
+  } else if (group.type === "plaintext" || group.type === "text-only") {
     body.className = "citation-body single-column";
     body.innerHTML = `
-      <div class="cite-plaintext">
-        <div class="cite-quote-snippet" id="cite-text-${idx}"></div>
+      <div class="cite-text-panel" style="max-height:400px">
+        <div class="cite-panel-tabs">
+          <button class="cite-panel-tab active" data-panel="quote" data-uid="${uid}">Cited Quotes</button>
+          <button class="cite-panel-tab" data-panel="fulltext" data-uid="${uid}">Full Text</button>
+        </div>
+        <div class="cite-quote-panel" id="cite-quote-${uid}"></div>
+        <div class="cite-text-content" id="cite-text-${uid}" style="display:none"></div>
       </div>
     `;
+    body.querySelectorAll(".cite-panel-tab").forEach(ptab => {
+      ptab.addEventListener("click", () => {
+        body.querySelectorAll(".cite-panel-tab").forEach(t => t.classList.remove("active"));
+        ptab.classList.add("active");
+        const quotePanel = document.getElementById("cite-quote-" + ptab.dataset.uid);
+        const textPanel = document.getElementById("cite-text-" + ptab.dataset.uid);
+        if (ptab.dataset.panel === "quote") {
+          quotePanel.style.display = "";
+          textPanel.style.display = "none";
+        } else {
+          quotePanel.style.display = "none";
+          textPanel.style.display = "";
+        }
+      });
+    });
   }
 
   card.appendChild(body);
   container.appendChild(card);
 
-  // Render content after DOM insertion
-  if (cit.type === "liteparse" && cit.imgId) {
-    // Set page image from hidden img
-    const hiddenImg = document.getElementById(cit.imgId);
-    const displayImg = document.getElementById("cite-display-" + idx);
-    const canvas = document.getElementById("cite-canvas-" + idx);
+  // ── Render content after DOM insertion ──
+
+  if (group.type === "liteparse" && group.imgId) {
+    // Page image + bounding boxes for ALL quotes on this page
+    const hiddenImg = document.getElementById(group.imgId);
+    const displayImg = document.getElementById("cite-display-" + uid);
+    const canvas = document.getElementById("cite-canvas-" + uid);
 
     if (hiddenImg && displayImg) {
       displayImg.src = hiddenImg.src;
       displayImg.onload = function() {
         canvas.width = displayImg.naturalWidth;
         canvas.height = displayImg.naturalHeight;
-
-        // Draw bounding box highlights
         const ctx = canvas.getContext("2d");
         const imgW = displayImg.naturalWidth;
         const imgH = displayImg.naturalHeight;
         if (!imgW || !imgH) return;
+        const scaleX = imgW / (group.pageWidth * SCALE);
+        const scaleY = imgH / (group.pageHeight * SCALE);
 
-        const scaleX = imgW / (cit.pageWidth * SCALE);
-        const scaleY = imgH / (cit.pageHeight * SCALE);
-
-        const matches = searchTextItems(cit.textItems, cit.quote);
+        // Draw highlights for ALL quotes in this group
         ctx.fillStyle = "rgba(254, 238, 5, 0.35)";
         ctx.strokeStyle = "rgba(254, 238, 5, 0.8)";
         ctx.lineWidth = 2;
-        for (const m of matches) {
-          const x = m.x * SCALE * scaleX;
-          const y = m.y * SCALE * scaleY;
-          const w = m.width * SCALE * scaleX;
-          const h = m.height * SCALE * scaleY;
-          ctx.fillRect(x, y, w, h);
-          ctx.strokeRect(x, y, w, h);
+        for (const q of group.quotes) {
+          const matches = searchTextItems(group.textItems, q.quote);
+          for (const m of matches) {
+            const x = m.x * SCALE * scaleX;
+            const y = m.y * SCALE * scaleY;
+            const w = m.width * SCALE * scaleX;
+            const h = m.height * SCALE * scaleY;
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+          }
         }
       };
     }
 
-    // Highlight quote in parsed text
-    const textEl = document.getElementById("cite-text-" + idx);
-    if (textEl && cit.pageText) {
-      textEl.innerHTML = highlightQuote(cit.pageText, cit.quote);
+    // Populate quoted text panel — show all quotes
+    const quotePanel = document.getElementById("cite-quote-" + uid);
+    if (quotePanel) {
+      group.quotes.forEach((q, qi) => {
+        const block = document.createElement("div");
+        block.style.marginBottom = qi < group.quotes.length - 1 ? "0.75rem" : "0";
+        block.innerHTML = `
+          <div class="cite-quote-block">${escapeHtml(q.quote)}</div>
+          <div class="cite-relevance-text">[${q.origIdx + 1}] ${escapeHtml(q.relevance)}</div>
+        `;
+        quotePanel.appendChild(block);
+      });
+    }
+
+    // Highlight all quotes in full page text
+    const textEl = document.getElementById("cite-text-" + uid);
+    if (textEl && group.pageText) {
+      let html = escapeHtml(group.pageText);
+      for (const q of group.quotes) {
+        const eq = escapeHtml(q.quote);
+        const regex = new RegExp("(" + escapeRegex(eq) + ")", "gi");
+        html = html.replace(regex, "<mark>$1</mark>");
+      }
+      textEl.innerHTML = html;
     }
   } else {
-    // Plaintext: show context around quote
-    const textEl = document.getElementById("cite-text-" + idx);
+    // Plaintext quotes panel
+    const quotePanel = document.getElementById("cite-quote-" + uid);
+    if (quotePanel) {
+      group.quotes.forEach((q, qi) => {
+        const block = document.createElement("div");
+        block.style.marginBottom = qi < group.quotes.length - 1 ? "0.75rem" : "0";
+        block.innerHTML = `
+          <div class="cite-quote-block">${escapeHtml(q.quote)}</div>
+          <div class="cite-relevance-text">[${q.origIdx + 1}] ${escapeHtml(q.relevance)}</div>
+        `;
+        quotePanel.appendChild(block);
+      });
+    }
+    // Full text panel
+    const textEl = document.getElementById("cite-text-" + uid);
     if (textEl) {
-      const fullText = cit.pageText || "";
-      if (fullText && cit.quote) {
-        // Show a window around the quote
-        const qIdx = fullText.toLowerCase().indexOf(cit.quote.toLowerCase());
-        if (qIdx !== -1) {
-          const start = Math.max(0, qIdx - 300);
-          const end = Math.min(fullText.length, qIdx + cit.quote.length + 300);
-          const snippet = (start > 0 ? "..." : "") +
-                          fullText.slice(start, end) +
-                          (end < fullText.length ? "..." : "");
-          textEl.innerHTML = highlightQuote(snippet, cit.quote);
-        } else {
-          textEl.textContent = cit.quote;
+      const fullText = group.pageText || "";
+      if (fullText) {
+        let html = escapeHtml(fullText);
+        for (const q of group.quotes) {
+          const eq = escapeHtml(q.quote);
+          const regex = new RegExp("(" + escapeRegex(eq) + ")", "gi");
+          html = html.replace(regex, "<mark>$1</mark>");
         }
-      } else {
-        textEl.textContent = cit.quote || "(no text)";
+        textEl.innerHTML = html;
       }
     }
   }
+});
+
+// ── Inline citation click: scroll to card + flash ───────────────────
+
+document.querySelectorAll(".cite-ref").forEach(link => {
+  link.addEventListener("click", function(e) {
+    e.preventDefault();
+    const citeNum = this.dataset.cite;
+    const card = document.getElementById("citation-" + citeNum);
+    if (!card) return;
+    card.classList.remove("collapsed");
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.add("flash");
+    setTimeout(() => card.classList.remove("flash"), 1500);
+  });
 });
 </script>
 
