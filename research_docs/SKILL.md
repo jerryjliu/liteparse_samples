@@ -1,5 +1,5 @@
 ---
-name: ask-docs
+name: research-docs
 description: Parse documents with LiteParse and answer questions with visual citations. Generates an HTML report with the answer, source page images, and bounding box highlights on cited text.
 argument-hint: "[data_directory] [question]"
 disable-model-invocation: true
@@ -7,7 +7,7 @@ allowed-tools: Bash(python *)
 compatibility: Requires Python 3.9+, `pip install liteparse`, Node 18+, `npm i -g @llamaindex/liteparse`
 ---
 
-# Ask Docs — Document Q&A with Visual Citations
+# Research Docs — Document Q&A with Visual Citations
 
 Parse documents with LiteParse, answer a question using the parsed text, and generate an HTML report with source citations highlighted on page images.
 
@@ -30,7 +30,7 @@ python "${CLAUDE_SKILL_DIR}/scripts/generate_report.py" \
     --skill-dir "${CLAUDE_SKILL_DIR}" \
     --dir "$0" \
     --parse-only \
-    --output /tmp/ask_docs_parsed.json
+    --output /tmp/research_docs_parsed.json
 ```
 
 This discovers and parses all supported files in the directory:
@@ -43,7 +43,7 @@ If the directory has more than 50 files and the user's question targets a specif
 
 ## Step 2 — Read Parsed Content
 
-Read `/tmp/ask_docs_parsed.json` using the Read tool. Focus on:
+Read `/tmp/research_docs_parsed.json` using the Read tool. Focus on:
 - Each file's `name` and `type`
 - For LiteParse files: each page's `text` field (skip raw `textItems` — those are for bounding box rendering)
 - For plaintext files: the `text` field
@@ -56,7 +56,7 @@ Build a mental model of all document content before answering.
 Using the parsed text as context, answer the user's question. Write your response as a JSON file:
 
 ```bash
-cat > /tmp/ask_docs_answer.json << 'ANSWER_EOF'
+cat > /tmp/research_docs_answer.json << 'ANSWER_EOF'
 {
   "question": "<the user's question>",
   "answer": "<your answer in markdown with [N] citation markers>",
@@ -99,8 +99,8 @@ Run the bundled script in generate mode to produce the visual report:
 python "${CLAUDE_SKILL_DIR}/scripts/generate_report.py" \
     --skill-dir "${CLAUDE_SKILL_DIR}" \
     --dir "$0" \
-    --answer-file /tmp/ask_docs_answer.json \
-    --output ask_docs_output/
+    --answer-file /tmp/research_docs_answer.json \
+    --output research_docs_output/
 ```
 
 This will:

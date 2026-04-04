@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LiteParse Ask Docs — Report Generator
+LiteParse Research Docs — Report Generator
 
 Two modes:
   --parse-only : Discover and parse all supported files in a directory, output JSON
@@ -65,9 +65,46 @@ def discover_files(data_dir: Path, max_files: int):
 
 # ── Parse-Only Mode ──────────────────────────────────────────────────
 
+def _parse_single_file(filepath, dpi):
+    """Parse a single file with LiteParse. Called from thread pool."""
+    from liteparse import LiteParse
+
+    parser = LiteParse()
+    t0 = time.perf_counter()
+    result = parser.parse(str(filepath), dpi=dpi)
+    elapsed = time.perf_counter() - t0
+
+    pages_data = []
+    for page in result.pages:
+        text_items = []
+        for item in page.textItems:
+            text_items.append({
+                "text": item.text,
+                "x": item.x,
+                "y": item.y,
+                "width": item.width,
+                "height": item.height,
+            })
+        pages_data.append({
+            "pageNum": page.pageNum,
+            "width": page.width,
+            "height": page.height,
+            "text": page.text,
+            "textItems": text_items,
+        })
+
+    return {
+        "name": filepath.name,
+        "path": str(filepath),
+        "type": "liteparse",
+        "parseTime": round(elapsed, 3),
+        "pages": pages_data,
+    }
+
+
 def run_parse_only(args):
     """Parse all files and output structured JSON."""
-    from liteparse import LiteParse
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
     data_dir = Path(args.dir)
     liteparse_files, plaintext_files = discover_files(data_dir, args.max_files)
@@ -76,51 +113,36 @@ def run_parse_only(args):
         print(f"Error: No supported files found in {data_dir}", file=sys.stderr)
         sys.exit(1)
 
-    parser = LiteParse()
     files_data = []
     total_pages = 0
 
-    # Parse LiteParse-supported files
-    for filepath in liteparse_files:
-        print(f"Parsing: {filepath.name}...", file=sys.stderr, end=" ", flush=True)
-        t0 = time.perf_counter()
-        try:
-            result = parser.parse(str(filepath), dpi=args.dpi)
-        except Exception as e:
-            print(f"FAILED ({e})", file=sys.stderr)
-            continue
-        elapsed = time.perf_counter() - t0
+    # Parse LiteParse-supported files in parallel
+    if liteparse_files:
+        max_workers = min(args.max_workers, len(liteparse_files))
+        print(f"Parsing {len(liteparse_files)} files with {max_workers} workers...",
+              file=sys.stderr)
+        t0_all = time.perf_counter()
 
-        pages_data = []
-        for page in result.pages:
-            text_items = []
-            for item in page.textItems:
-                text_items.append({
-                    "text": item.text,
-                    "x": item.x,
-                    "y": item.y,
-                    "width": item.width,
-                    "height": item.height,
-                })
-            pages_data.append({
-                "pageNum": page.pageNum,
-                "width": page.width,
-                "height": page.height,
-                "text": page.text,
-                "textItems": text_items,
-            })
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(_parse_single_file, fp, args.dpi): fp
+                for fp in liteparse_files
+            }
+            for future in as_completed(futures):
+                filepath = futures[future]
+                try:
+                    file_data = future.result()
+                    total_pages += len(file_data["pages"])
+                    files_data.append(file_data)
+                    print(f"  {filepath.name}: {file_data['parseTime']}s "
+                          f"({len(file_data['pages'])} pages)", file=sys.stderr)
+                except Exception as e:
+                    print(f"  {filepath.name}: FAILED ({e})", file=sys.stderr)
 
-        total_pages += len(pages_data)
-        files_data.append({
-            "name": filepath.name,
-            "path": str(filepath),
-            "type": "liteparse",
-            "parseTime": round(elapsed, 3),
-            "pages": pages_data,
-        })
-        print(f"done in {elapsed:.2f}s ({len(pages_data)} pages)", file=sys.stderr)
+        elapsed_all = time.perf_counter() - t0_all
+        print(f"All files parsed in {elapsed_all:.2f}s", file=sys.stderr)
 
-    # Read plaintext files
+    # Read plaintext files (fast, no need to parallelize)
     for filepath in plaintext_files:
         print(f"Reading: {filepath.name}...", file=sys.stderr, end=" ", flush=True)
         try:
@@ -462,7 +484,7 @@ def run_generate(args):
 
 def main():
     ap = argparse.ArgumentParser(
-        description="LiteParse Ask Docs — Report Generator"
+        description="LiteParse Research Docs — Report Generator"
     )
     ap.add_argument("--skill-dir", required=True,
                     help="Path to skill directory (for templates)")
@@ -472,12 +494,14 @@ def main():
                     help="Parse docs and output JSON only")
     ap.add_argument("--answer-file",
                     help="Path to answer JSON (for generate mode)")
-    ap.add_argument("--output", default="ask_docs_output/",
+    ap.add_argument("--output", default="research_docs_output/",
                     help="Output path (file for --parse-only, directory for generate)")
     ap.add_argument("--dpi", type=int, default=150,
                     help="DPI for screenshots (default: 150)")
     ap.add_argument("--max-files", type=int, default=50,
                     help="Maximum files to process (default: 50)")
+    ap.add_argument("--max-workers", type=int, default=8,
+                    help="Max parallel parse workers (default: 8)")
     args = ap.parse_args()
 
     if args.parse_only:

@@ -5,4 +5,5 @@ __pycache__/
 research/
 plans/
 *.traineddata
+research_docs_output/
 ask_docs_output/

@@ -1,19 +1,19 @@
-# Ask Docs — Document Q&A with Visual Citations
+# Research Docs — Document Q&A with Visual Citations
 
 A Claude Code skill that parses your documents with [LiteParse](https://developers.llamaindex.ai/liteparse/), answers questions using the parsed text, and generates a self-contained HTML report with source citations — including bounding box highlights on the original page images.
 
-![Ask Docs](assets/ask-docs.png)
+![Research Docs](assets/research-docs.png)
 
 ## Install
 
 ```bash
-npx skills add run-llama/liteparse_samples --skill ask_docs
+npx skills add run-llama/liteparse_samples --skill research_docs
 ```
 
 Or manually:
 
 ```bash
-cp -r ask_docs ~/.claude/skills/ask_docs
+cp -r research_docs ~/.claude/skills/research-docs
 ```
 
 ### Prerequisites
@@ -27,10 +27,10 @@ cp -r ask_docs ~/.claude/skills/ask_docs
 In Claude Code, run:
 
 ```
-/ask-docs ./path/to/documents What are the key financial indicators?
+/research-docs ./path/to/documents What are the key financial indicators?
 ```
 
-This generates a timestamped HTML report in `ask_docs_output/` and opens it in your browser.
+This generates a timestamped HTML report in `research_docs_output/` and opens it in your browser.
 
 ## How It Works
 
