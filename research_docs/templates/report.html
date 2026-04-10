@@ -8,22 +8,33 @@
 <link href="https://cdn.jsdelivr.net/fontsource/fonts/overused-grotesk@latest/latin.css" rel="stylesheet">
 <style>
   :root {
+    /* Brand neutrals */
     --bg: #FFFFFF;
     --bg-alt: #F5F5F5;
     --surface: #FFFFFF;
     --surface2: #F5F5F5;
-    --surface3: #EBEBEB;
+    --surface3: #E7E7E7;
     --border: #E7E7E7;
     --text: #000000;
     --text-dim: #737373;
+    /* Brand colors */
     --purple: #3E18F9;
     --purple-mid: #4B72FE;
     --purple-light: #92AEFF;
-    --orange: #FF8705;
-    --pink: #FF8DF2;
     --blue: #37D7FA;
+    --blue-light: #96E7F9;
+    --pink: #FF8DF2;
+    --pink-light: #FFBFF8;
+    --orange: #FF8705;
+    --orange-mid: #FFBD74;
+    --orange-light: #FDEDBA;
     --yellow: #FEEE05;
-    --gradient-brand: linear-gradient(148.35deg, #37d7fa -.08%, #4b72fe 39.93%, #ff8df2 67.94%, #ff8705 99.94%);
+    --yellow-light: #FAF5A8;
+    /* Brand gradients */
+    --gradient-stroke: linear-gradient(180deg, #37D7FA 0%, #4B72FE 40%, #FF8DF2 68%, #FF8705 100%);
+    --gradient-bg: linear-gradient(180deg, #96E7F9 0%, #92AEFF 30%, #FFBFF8 60%, #FF8705 100%);
+    --gradient-enterprise: linear-gradient(180deg, #92AEFF 25%, #12D4FF 90%);
+    --gradient-dev: linear-gradient(180deg, #FF8705 0%, #FF8DF2 75%);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -37,14 +48,26 @@
   .hero {
     text-align: center;
     padding: 2.5rem 2rem 2rem;
-    background: linear-gradient(180deg, rgba(62,24,249,0.04) 0%, transparent 70%);
+    background: linear-gradient(180deg, rgba(150,231,249,0.08) 0%, rgba(146,174,255,0.06) 30%, rgba(255,191,248,0.04) 60%, transparent 85%);
     border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--gradient-stroke);
   }
   .hero h1 {
     font-size: 2.2rem; font-weight: 500;
     letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 0.4rem;
   }
-  .hero h1 .accent { color: var(--purple); }
+  .hero h1 .accent {
+    background: var(--gradient-stroke);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
   .hero .subtitle {
     color: var(--text-dim); font-size: 1rem;
     max-width: 700px; margin: 0.3rem auto 0;
@@ -53,10 +76,19 @@
     display: grid; grid-template-columns: repeat(4, 1fr);
     max-width: 700px; margin: 1.5rem auto 0; gap: 1px;
     background: var(--border); border-radius: 12px; overflow: hidden;
+    position: relative;
+  }
+  .stats-bar::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--gradient-stroke);
+    border-radius: 12px 12px 0 0;
+    z-index: 1;
   }
   .stat { background: var(--bg); padding: 0.8rem; text-align: center; }
   .stat .val {
-    font-size: 1.3rem; font-weight: 500; color: var(--purple);
+    font-size: 1.3rem; font-weight: 500; color: var(--text);
     font-variant-numeric: tabular-nums; letter-spacing: -0.03em;
   }
   .stat .lbl {
@@ -77,7 +109,11 @@
     padding: 0.8rem 1rem;
     background: var(--bg-alt);
     border-radius: 8px;
-    border-left: 3px solid var(--purple);
+    border-left: 3px solid transparent;
+    border-image: var(--gradient-stroke) 1;
+    border-image-slice: 1;
+    border-width: 0 0 0 3px;
+    border-style: solid;
   }
 
   /* Answer section */
@@ -88,7 +124,9 @@
     text-transform: uppercase; letter-spacing: 0.04em;
     margin-bottom: 0.75rem;
     padding-bottom: 0.4rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid transparent;
+    border-image: var(--gradient-stroke) 1;
+    border-image-slice: 1;
   }
   .answer-content {
     font-size: 0.95rem; line-height: 1.7;
@@ -141,7 +179,9 @@
     text-transform: uppercase; letter-spacing: 0.04em;
     margin-bottom: 1rem;
     padding-bottom: 0.4rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid transparent;
+    border-image: var(--gradient-stroke) 1;
+    border-image-slice: 1;
   }
 
   /* Citation card */
@@ -166,7 +206,7 @@
   .citation-num {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.7rem; font-weight: 600;
-    color: #fff; background: var(--purple);
+    color: #fff; background: var(--gradient-stroke);
     width: 22px; height: 22px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -322,10 +362,13 @@
     flex: 1;
   }
   .cite-quote-block {
-    border-left: 3px solid var(--purple);
+    border-left: 3px solid transparent;
+    border-image: var(--gradient-stroke) 1;
+    border-image-slice: 1;
+    border-width: 0 0 0 3px;
+    border-style: solid;
     padding: 0.6rem 0.8rem;
     background: rgba(62, 24, 249, 0.04);
-    border-radius: 0 6px 6px 0;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.75rem; line-height: 1.6;
     color: var(--text);
@@ -376,8 +419,11 @@
   .footer {
     text-align: center; padding: 2rem;
     color: var(--text-dim); font-size: 0.82rem;
-    border-top: 1px solid var(--border);
     max-width: 1100px; margin: 0 auto;
+    position: relative;
+    border-top: 2px solid transparent;
+    border-image: var(--gradient-stroke) 1;
+    border-image-slice: 1;
   }
   .footer a { color: var(--purple); text-decoration: none; }
   .footer a:hover { text-decoration: underline; }
@@ -462,13 +508,26 @@ function normalizeText(s) {
 
 function searchTextItems(textItems, query) {
   if (!query || !textItems || !textItems.length) return [];
-  const q = normalizeText(query.toLowerCase());
+  // Collapse all whitespace (spaces, newlines, tabs) in the query to single
+  // spaces so that layout-preserving quotes from page.text (which may have
+  // wide column gaps) still match the single-space-joined textItems.
+  const q = normalizeText(query.toLowerCase()).replace(/\s+/g, " ").trim();
+
+  // Sort textItems into visual reading order (top→bottom, left→right)
+  // so the concatenated string matches page.text's reading order.
+  // Items within ~6 PDF points vertically are treated as the same line.
+  const LINE_TOLERANCE = 6;
+  const sorted = [...textItems].sort((a, b) => {
+    const ay = a.y, by = b.y;
+    if (Math.abs(ay - by) <= LINE_TOLERANCE) return a.x - b.x;
+    return ay - by;
+  });
 
   // Normalize each item's text BEFORE building the concatenated string,
   // so character positions in the concatenated text match the ranges.
   let fullText = "";
   const ranges = [];
-  for (const item of textItems) {
+  for (const item of sorted) {
     const trimmed = normalizeText(item.text.replace(/\s+$/, ""));
     if (!trimmed) continue;
     if (fullText.length > 0) fullText += " ";

@@ -85,7 +85,8 @@ ANSWER_EOF
 
 **Critical rules for quote format:**
 - `quote` MUST be **copied character-for-character** from the parsed text. It is used for bounding box lookup via exact string matching. Do NOT paraphrase, reword, clean up, or fix typos.
-- **Prefer short, precise quotes** — a number like `6,613,609` or a short phrase like `Securities held outright` (under 60 characters). Shorter quotes match bounding boxes much more reliably than long sentences.
+- **Prefer short, precise quotes** — a single value like `$2,769.23` or a short contiguous phrase like `Securities held outright` (under 40 characters). Shorter quotes match bounding boxes much more reliably.
+- **NEVER quote across table columns.** In tabular data, each column cell is a separate text region. Quote individual cell values (e.g., `$16,615.38`), NOT a run of values spanning multiple columns (e.g., ~~`$2,769.23         80.00     $2,769.23   $16,615.38`~~). Large whitespace gaps between values mean they are separate bounding boxes that won't match as one quote.
 - If the text has unusual characters, hyphens, or formatting artifacts, include them exactly as they appear.
 - `page` is **1-indexed** (matches LiteParse pageNum)
 - `file` is just the filename (not the full path)
