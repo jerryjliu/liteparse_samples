@@ -508,13 +508,26 @@ function normalizeText(s) {
 
 function searchTextItems(textItems, query) {
   if (!query || !textItems || !textItems.length) return [];
-  const q = normalizeText(query.toLowerCase());
+  // Collapse all whitespace (spaces, newlines, tabs) in the query to single
+  // spaces so that layout-preserving quotes from page.text (which may have
+  // wide column gaps) still match the single-space-joined textItems.
+  const q = normalizeText(query.toLowerCase()).replace(/\s+/g, " ").trim();
+
+  // Sort textItems into visual reading order (top→bottom, left→right)
+  // so the concatenated string matches page.text's reading order.
+  // Items within ~6 PDF points vertically are treated as the same line.
+  const LINE_TOLERANCE = 6;
+  const sorted = [...textItems].sort((a, b) => {
+    const ay = a.y, by = b.y;
+    if (Math.abs(ay - by) <= LINE_TOLERANCE) return a.x - b.x;
+    return ay - by;
+  });
 
   // Normalize each item's text BEFORE building the concatenated string,
   // so character positions in the concatenated text match the ranges.
   let fullText = "";
   const ranges = [];
-  for (const item of textItems) {
+  for (const item of sorted) {
     const trimmed = normalizeText(item.text.replace(/\s+$/, ""));
     if (!trimmed) continue;
     if (fullText.length > 0) fullText += " ";
